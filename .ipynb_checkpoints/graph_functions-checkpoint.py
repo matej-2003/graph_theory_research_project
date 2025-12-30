@@ -430,20 +430,23 @@ def visualize_distance_partitions(G, v = 0, figsize=(8, 4), with_labels=False):
 
 
 
-def distance_partitions_pos(G, v=0, x_spacing=2.0, y_spacing = 2.0):
-    layers = list(nx.bfs_layers(G, v))
 
+import math
+import matplotlib.pyplot as plt
+import networkx as nx
+
+
+def distance_partitions_pos(G, v=0, x_spacing=2.0, y_spacing=2.0):
+    layers = list(nx.bfs_layers(G, v))
     pos = {}
 
     for i, layer in enumerate(layers):
         x = i * x_spacing
         y_start = -(len(layer) - 1) * y_spacing / 2
-
         for j, node in enumerate(sorted(layer)):
             pos[node] = (x, y_start + j * y_spacing)
 
     return pos
-
 
 
 def display_graph2(
@@ -462,6 +465,7 @@ def display_graph2(
     if pos is None:
         pos = nx.spring_layout(G, seed=100)
 
+    # draw nodes and edges
     nx.draw(
         G,
         pos,
@@ -469,7 +473,7 @@ def display_graph2(
         with_labels=False,
         node_size=node_size,
         node_color=[
-            'red' if G.nodes[n].get("infected", False) else 'lightgray'
+            "red" if G.nodes[n].get("infected", False) else "lightgray"
             for n in G.nodes()
         ],
     )
@@ -481,12 +485,21 @@ def display_graph2(
         labels={n: n for n in G.nodes()},
         font_size=font_size,
         ax=ax,
+        horizontalalignment="center",
+        verticalalignment="center",
     )
 
-    # extra labels next to nodes
+    # additional labels next to nodes
     if labels is not None:
-        offset = 0.12
-        pos_offset = {n: (pos[n][0] + offset, pos[n][1]) for n in labels}
+        xs = [p[0] for p in pos.values()]
+        span = max(xs) - min(xs) if len(xs) > 1 else 1.0
+        label_offset = 0.03 * span  # auto-scaled offset
+
+        pos_offset = {
+            n: (pos[n][0] + label_offset, pos[n][1])
+            for n in labels
+        }
+
         nx.draw_networkx_labels(
             G,
             pos_offset,
@@ -504,3 +517,4 @@ def display_graph2(
 
     ax.set_aspect("equal")
     ax.axis("off")
+
