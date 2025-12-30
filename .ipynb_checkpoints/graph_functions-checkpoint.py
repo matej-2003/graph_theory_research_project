@@ -430,12 +430,10 @@ def visualize_distance_partitions(G, v = 0, figsize=(8, 4), with_labels=False):
 
 
 
-def distance_partitions_pos(G, v=0):
+def distance_partitions_pos(G, v=0, x_spacing=2.0, y_spacing = 2.0):
     layers = list(nx.bfs_layers(G, v))
 
     pos = {}
-    x_spacing = 2.0
-    y_spacing = 1.0
 
     for i, layer in enumerate(layers):
         x = i * x_spacing
@@ -446,17 +444,20 @@ def distance_partitions_pos(G, v=0):
 
     return pos
 
+
+
 def display_graph2(
     G,
     figsize=(6, 6),
     show_title=True,
-    with_labels=False,
     pos=None,
-    node_size=60,
-    font_size=10,
+    node_size=80,
+    font_size=8,
     labels=None,
+    ax=None,
 ):
-    fig, ax = plt.subplots(figsize=figsize)
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
 
     if pos is None:
         pos = nx.spring_layout(G, seed=100)
@@ -465,32 +466,35 @@ def display_graph2(
         G,
         pos,
         ax=ax,
-        with_labels=False,  # always false, labels handled separately
+        with_labels=False,
         node_size=node_size,
-        font_size=font_size,
         node_color=[
             'red' if G.nodes[n].get("infected", False) else 'lightgray'
             for n in G.nodes()
         ],
     )
 
-    # draw labels if provided
+    # node IDs on nodes
+    nx.draw_networkx_labels(
+        G,
+        pos,
+        labels={n: n for n in G.nodes()},
+        font_size=font_size,
+        ax=ax,
+    )
+
+    # extra labels next to nodes
     if labels is not None:
+        offset = 0.12
+        pos_offset = {n: (pos[n][0] + offset, pos[n][1]) for n in labels}
         nx.draw_networkx_labels(
             G,
-            pos,
+            pos_offset,
             labels=labels,
             font_size=font_size,
             ax=ax,
-        )
-    elif with_labels:
-        # fallback: default node labels
-        nx.draw_networkx_labels(
-            G,
-            pos,
-            labels={n: n for n in G.nodes()},
-            font_size=font_size,
-            ax=ax,
+            horizontalalignment="left",
+            verticalalignment="center",
         )
 
     if show_title:
@@ -499,10 +503,4 @@ def display_graph2(
         ax.set_title("")
 
     ax.set_aspect("equal")
-    plt.tight_layout()
-    plt.show()
-
-
-
-
-
+    ax.axis("off")
