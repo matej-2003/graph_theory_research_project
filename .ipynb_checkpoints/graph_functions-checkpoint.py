@@ -493,22 +493,41 @@ def display_graph2(
     if labels is not None:
         xs = [p[0] for p in pos.values()]
         span = max(xs) - min(xs) if len(xs) > 1 else 1.0
-        label_offset = 0.03 * span  # auto-scaled offset
+        label_offset = 0.05 * span  # auto-scaled offset
 
         pos_offset = {
             n: (pos[n][0] + label_offset, pos[n][1])
             for n in labels
         }
 
+        # expand axes to include offset labels
+        all_x = [p[0] for p in pos.values()] + [p[0] for p in pos_offset.values()]
+        all_y = [p[1] for p in pos.values()] + [p[1] for p in pos_offset.values()]
+        
+        pad_x = 0.1 * (max(all_x) - min(all_x) or 1)
+        pad_y = 0.1 * (max(all_y) - min(all_y) or 1)
+        
+        ax.set_xlim(min(all_x) - pad_x, max(all_x) + pad_x)
+        ax.set_ylim(min(all_y) - pad_y, max(all_y) + pad_y)
+        
         nx.draw_networkx_labels(
             G,
             pos_offset,
             labels=labels,
             font_size=font_size,
             ax=ax,
-            horizontalalignment="left",
-            verticalalignment="center",
+            clip_on=True,
         )
+        
+        # nx.draw_networkx_labels(
+        #     G,
+        #     pos_offset,
+        #     labels=labels,
+        #     font_size=font_size,
+        #     ax=ax,
+        #     horizontalalignment="left",
+        #     verticalalignment="center",
+        # )
 
     if show_title:
         ax.set_title(f"Graph C({len(G.nodes)})")
