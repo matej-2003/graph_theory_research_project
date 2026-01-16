@@ -67,7 +67,8 @@ def display_graph_stage(G, prism=True, figsize=(6, 3), v=0):
     else:
         display_graph2(G, show_title=True, labels=labels, pos=mobius_pos(G), ax=axes[0])
         
-    display_graph2(G, show_title=True, labels=labels, pos=distance_partitions_pos(G, v=v, x_spacing=3.0, y_spacing=3.0), ax=axes[1])
+    # display_graph2(G, show_title=True, labels=labels, pos=distance_partitions_pos(G, v=v, x_spacing=3.0, y_spacing=3.0), ax=axes[1])
+    display_graph2(G, show_title=True, labels=labels, pos=nx.bfs_layout(G, v), ax=axes[1])
 
     plt.tight_layout()
     plt.show()
@@ -91,7 +92,8 @@ def display_graph_distance_par(G, pos=None, v=0, figsize=(8, 3)):
     fig, axes = plt.subplots(1, 2, figsize=figsize)
 
     display_graph2(G, labels=labels, pos=pos, ax=axes[0])
-    display_graph2(G, labels=labels, pos=distance_partitions_pos(G, v=v, x_spacing=6.0, y_spacing=3.0), ax=axes[1],)
+    # display_graph2(G, labels=labels, pos=distance_partitions_pos(G, v=v, x_spacing=6.0, y_spacing=3.0), ax=axes[1],)
+    display_graph2(G, labels=labels, pos=nx.bfs_layout(G, v)) #, x_spacing=6.0, y_spacing=3.0), ax=axes[1],)
 
     plt.tight_layout()
     plt.show()

@@ -124,33 +124,29 @@ def is_infectable(G, node):
 	return infected_N_counter >= 2
 
 def fully_endemic(G_):
-	G = G_.copy()
-	max_itter_number = len(G.nodes)
-	infected_nodes = [n for n in G.nodes if G.nodes[n].get("infected")]
-	healthy_nodes = [n for n in G.nodes if not G.nodes[n].get("infected")]
+    G = G_.copy()
+    max_iters = len(G.nodes)
 
-	itter_number = 0
-	while healthy_nodes:
-		# find all new infections in THIS wave
-		newly_infected = [node for node in healthy_nodes if is_infectable(G, node)]
+    for _ in range(max_iters):
+        healthy = [n for n in G.nodes if not G.nodes[n].get("infected")]
+        if not healthy:
+            break
 
-		if not newly_infected:
-			break
+        newly_infected = [
+            n for n in healthy if is_infectable(G, n)
+        ]
 
-		# infect all of them at once
-		for node in newly_infected:
-			G.nodes[node]["infected"] = True
+        if not newly_infected:
+            break
 
-		# update tracking sets
-		for node in newly_infected:
-			infected_nodes.append(node)
-			healthy_nodes.remove(node)
+        for n in newly_infected:
+            G.nodes[n]["infected"] = True
 
-		itter_number += 1
-		if itter_number > max_itter_number:
-			break
+    infected = [n for n in G.nodes if G.nodes[n].get("infected")]
+    healthy = [n for n in G.nodes if not G.nodes[n].get("infected")]
 
-	return (G, infected_nodes, healthy_nodes)
+    return G, infected, healthy
+
 
 def infection_spread(G):
 	graph_stages = [G.copy()]
@@ -381,17 +377,18 @@ def visualize_distance_partitions(G, v = 0, figsize=(8, 4), with_labels=False):
     layers = list(nx.bfs_layers(G, v))
     
     # build custom positions
-    pos = {}
-    x_spacing = 2.0
-    y_spacing = 1.0
+    # pos = {}
+    # x_spacing = 2.0
+    # y_spacing = 1.0
     
-    for i, layer in enumerate(layers):
-        x = i * x_spacing
-        y_start = -(len(layer) - 1) * y_spacing / 2
+    # for i, layer in enumerate(layers):
+    #     x = i * x_spacing
+    #     y_start = -(len(layer) - 1) * y_spacing / 2
     
-        for j, node in enumerate(sorted(layer)):
-            y = y_start + j * y_spacing
-            pos[node] = (x, y)
+    #     for j, node in enumerate(sorted(layer)):
+    #         y = y_start + j * y_spacing
+    #         pos[node] = (x, y)
+    pos = nx.bfs_layout(G, v)
     
     # color by layer
     node_colors = []
@@ -436,16 +433,64 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 
-def distance_partitions_pos(G, v=0, x_spacing=2.0, y_spacing=2.0):
+def distance_partitions_pos(G, v=0, x_spacing=4.0, y_spacing=2.0):
     layers = list(nx.bfs_layers(G, v))
     pos = {}
 
-    for i, layer in enumerate(layers):
-        x = i * x_spacing
-        y_start = -(len(layer) - 1) * y_spacing / 2
-        for j, node in enumerate(sorted(layer)):
-            pos[node] = (x, y_start + j * y_spacing)
+    # Let partition width be 1/4 of x_spacing, and gap be 3/4. This will make partitions look "squashed".
+    partition_width = x_spacing / 4.0
+    partition_gap = x_spacing * (3.0 / 4.0)
 
+    # total width for a partition area
+    total_partition_space = partition_width + partition_gap
+
+    for i, layer in enumerate(layers):
+        if not layer:
+            continue
+        
+        nodes_in_layer = sorted(list(layer)) # for determinism
+        subgraph = G.subgraph(nodes_in_layer)
+        
+        # Use spring layout on the subgraph for node positions within the partition
+        # iterations can be increased for better layout if needed.
+        sub_pos = nx.spring_layout(subgraph, seed=100, iterations=100) 
+        
+        x_min_partition = i * total_partition_space
+        
+        num_nodes = len(nodes_in_layer)
+        y_extent = (num_nodes - 1) * y_spacing / 2.0 if num_nodes > 1 else 0
+
+        # Find min/max of sub_pos to scale them into the partition's box
+        if num_nodes > 0:
+            # For a single node, spring_layout gives (0,0)
+            if num_nodes == 1:
+                min_sx, max_sx, min_sy, max_sy = 0, 1, 0, 1
+            else:
+                all_sx = [p[0] for p in sub_pos.values()]
+                all_sy = [p[1] for p in sub_pos.values()]
+                min_sx, max_sx = min(all_sx), max(all_sx)
+                min_sy, max_sy = min(all_sy), max(all_sy)
+
+            sx_range = max_sx - min_sx
+            if sx_range == 0: sx_range = 1 # avoid division by zero
+            
+            # Vertical positioning: evenly spaced
+            y_bottom_partition = -y_extent
+            vertical_step_size = 0
+            if num_nodes > 1:
+                vertical_step_size = (2 * y_extent) / (num_nodes - 1)
+
+            for j, node in enumerate(nodes_in_layer): # iterate by index to get even spacing
+                sx, _ = sub_pos[node] # Only use sx from sub_pos, ignore sy
+                
+                # Scale x from sub_pos range to [0, partition_width]
+                scaled_sx = ((sx - min_sx) / sx_range) * partition_width
+                
+                # Assign y evenly spaced
+                scaled_sy = y_bottom_partition + j * vertical_step_size
+                
+                pos[node] = (x_min_partition + scaled_sx, scaled_sy)
+        
     return pos
 
 
@@ -536,4 +581,3 @@ def display_graph2(
 
     ax.set_aspect("equal")
     ax.axis("off")
-
